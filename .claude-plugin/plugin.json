@@ -1,10 +1,10 @@
 {
   "name": "aigile-dev",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "AI-native agile development - sprint planning, full-stack agents, and product research",
   "author": {
     "name": "Lando Labs",
-    "email": "hello@lando-labs.com"
+    "email": "feedback@landolabs.co"
   },
   "homepage": "https://github.com/lando-labs/aigile-dev",
   "repository": "https://github.com/lando-labs/aigile-dev",
