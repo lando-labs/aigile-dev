@@ -1,0 +1,19 @@
+{
+  "name": "aigile-dev",
+  "version": "0.1.0",
+  "description": "AI-native agile development - sprint planning, full-stack agents, and market research",
+  "author": {
+    "name": "Lando Labs",
+    "email": "hello@lando-labs.com"
+  },
+  "homepage": "https://github.com/lando-labs/aigile-dev",
+  "repository": "https://github.com/lando-labs/aigile-dev",
+  "keywords": ["agile", "sprints", "development", "full-stack", "ai-native"],
+  "skills": [
+    "skills/vibecoding-sprint/SKILL.md",
+    "skills/market-research/SKILL.md"
+  ],
+  "agents": [
+    "agents/product-skeptic.md"
+  ]
+}
