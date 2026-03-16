@@ -50,6 +50,109 @@ This skill triggers when users need sprint planning help:
 - "Run tests before close" / "Pre-flight checks"
 - "Are we ready to close?" / "Sprint health check"
 
+## First-Run Onboarding
+
+**IMPORTANT**: Before any sprint operation, check if this is a first-time user.
+
+### Detection
+
+Check for first-run state:
+```bash
+# First-run if BOTH are true:
+ls .claude/sprints/ 2>/dev/null || echo "NO_SPRINTS_DIR"
+ls .claude/sprint.config.json 2>/dev/null || echo "NO_CONFIG"
+```
+
+If `.claude/sprints/` directory doesn't exist → **This is a first-run user. Start onboarding.**
+
+### Onboarding Flow
+
+When first-run detected, provide this guided experience:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    WELCOME TO AIGILE DEV                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  AIgile Dev helps you plan and execute focused development      │
+│  sprints with AI assistance.                                    │
+│                                                                 │
+│  QUICK GLOSSARY:                                                │
+│  • Sprint: A focused work period targeting one version bump     │
+│  • Manifest: A document tracking sprint scope and progress      │
+│  • Hydrate: Fetching full issue details into your manifest      │
+│  • Semver: Semantic versioning (MAJOR.MINOR.PATCH)              │
+│                                                                 │
+│  THE WORKFLOW:                                                  │
+│  1. Plan → Group issues into focused sprints                    │
+│  2. Start → Create branch, hydrate manifest with details        │
+│  3. Build → Work through issues with AI assistance              │
+│  4. Verify → Run checks before closing                          │
+│  5. Close → Tag, release, archive, prep next sprint             │
+│                                                                 │
+│  Full glossary: reference/glossary.md                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Setup Prompt
+
+After the welcome, ask:
+
+```
+I'll set up the sprint structure for this project.
+
+This creates:
+  .claude/
+  ├── sprints/
+  │   ├── architecture/   # Project context docs
+  │   ├── plans/          # Sprint roadmaps
+  │   ├── manifests/      # Active sprint docs
+  │   └── archive/        # Completed sprints
+  └── sprint.config.json  # Optional config
+
+Ready to create the structure? (I'll also scan your codebase to
+create initial architecture docs)
+```
+
+### Directory Creation
+
+If user confirms, create the structure:
+
+```bash
+mkdir -p .claude/sprints/architecture
+mkdir -p .claude/sprints/plans
+mkdir -p .claude/sprints/manifests
+mkdir -p .claude/sprints/archive
+```
+
+### First Sprint Guidance
+
+After setup, guide them to their first sprint:
+
+```
+✓ Sprint structure created!
+
+Next steps:
+1. Do you have issues in GitHub/GitLab?
+   → "Plan my sprints" - I'll fetch and group them
+
+2. No issues yet?
+   → "Help me create issues" - We'll document what needs doing
+
+3. Want to configure your tech stack?
+   → I can create .claude/sprint.config.json with your test/build commands
+
+What would you like to do?
+```
+
+### Skip Conditions
+
+Skip onboarding if:
+- `.claude/sprints/` directory exists (returning user)
+- User explicitly says "skip onboarding" or "I know how this works"
+- User jumps directly to a specific command like "close out the sprint"
+
 ## File Organization (CRITICAL)
 
 **NEVER overwrite existing plans.** All sprint artifacts go in `.claude/sprints/` with date-stamped filenames.
