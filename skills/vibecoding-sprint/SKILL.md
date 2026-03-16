@@ -1,7 +1,7 @@
 ---
 name: vibecoding-sprint
-description: Plan and manage AI-assisted development sprints with GitHub branch protections. Analyze issues, group by feature or discipline, generate 3-sprint plans with semantic versioning targets, create sprint manifests, start sprints by hydrating manifests with full GitHub issue details, verify sprint completion with Playwright E2E tests and local checks, and close out completed sprints with tagging, releases, and documentation. Use when planning sprints, starting sprints with "start the sprint", running pre-close verification with "run the checks", or closing out sprints with "close out the sprint".
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, mcp__git-all__git_status, mcp__git-all__git_log, mcp__git-all__git_branch_list, mcp__git-all__git_tag_list, mcp__git-all__git_add, mcp__git-all__git_commit, mcp__git-all__github_list_issues, mcp__git-all__github_get_issue, mcp__git-all__github_search_issues, mcp__git-all__github_list_pulls
+description: Plan and manage AI-assisted development sprints with branch protections. SCM-agnostic (GitHub, GitLab, Bitbucket, or local-only). Analyze issues, group by feature or discipline, generate 3-sprint plans with semantic versioning targets, create sprint manifests, hydrate with full issue details, verify with configurable checks (any tech stack), and close out with tagging and releases. Use when planning sprints, starting sprints with "start the sprint", running pre-close verification with "run the checks", or closing out sprints with "close out the sprint".
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
 
 # Vibecoding Sprint Planning
@@ -616,8 +616,8 @@ But implementation agents need the **full context**:
 │    □ Parse all #XX references from manifest                     │
 │    □ Separate "Must Complete" from "Nice to Have"               │
 │                                                                 │
-│ 3. FETCH FULL ISSUES FROM GITHUB                                │
-│    □ Call github_get_issue for each issue number                │
+│ 3. FETCH FULL ISSUES FROM ISSUE TRACKER                         │
+│    □ Fetch each issue (gh issue view, glab issue view, etc.)    │
 │    □ Capture: title, body, labels, assignees, state             │
 │    □ Note any closed/changed issues                             │
 │                                                                 │
@@ -673,8 +673,8 @@ Parse the manifest for issue references:
 
 For each issue, call the GitHub API:
 
-```
-mcp__git-all__github_get_issue(owner, repo, issue_number)
+```bash
+gh issue view <issue_number> --json title,body,labels,assignees,state
 ```
 
 Capture for each issue:
@@ -1822,7 +1822,7 @@ Output:
 User: "Help me plan sprints from my issues"
 
 You:
-1. Fetch issues: mcp__git-all__github_list_issues
+1. Fetch issues: `gh issue list --json number,title,labels,body`
 2. Analyze and group by feature/discipline
 3. Present groupings for confirmation
 4. Generate 3-sprint plan
@@ -1872,11 +1872,11 @@ You:
    - Found: #12, #15, #18 (Must Complete)
    - Found: #22 (Nice to Have)
 
-3. Fetch full issues from GitHub:
-   - github_get_issue(lando-labs, steepen, 12)
-   - github_get_issue(lando-labs, steepen, 15)
-   - github_get_issue(lando-labs, steepen, 18)
-   - github_get_issue(lando-labs, steepen, 22)
+3. Fetch full issues from your issue tracker:
+   - gh issue view 12 --json title,body,labels,assignees,state
+   - gh issue view 15 --json title,body,labels,assignees,state
+   - gh issue view 18 --json title,body,labels,assignees,state
+   - gh issue view 22 --json title,body,labels,assignees,state
 
 4. Hydrate the manifest:
    - Add "Full Issue Details" section
@@ -2128,6 +2128,11 @@ Projects can customize sprint behavior with a configuration file at `.claude/spr
 
 ```json
 {
+  "scm": {
+    "provider": "github",
+    "issueTracker": "github",
+    "releaseCommand": "gh release create"
+  },
   "closeout": {
     "typecheck": "pnpm typecheck",
     "lint": "pnpm lint",
@@ -2168,6 +2173,30 @@ Controls sprint planning behavior.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `sprintCount` | number | `3` | Number of sprints to plan ahead |
+
+#### `scm` Section
+
+Controls source control and issue tracking integration. **GitHub is the default but not required.**
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `provider` | string | `"github"` | SCM provider: `"github"`, `"gitlab"`, `"bitbucket"`, `"local"` |
+| `issueTracker` | string | `"github"` | Issue tracker: `"github"`, `"gitlab"`, `"jira"`, `"linear"`, `"local"` |
+| `releaseCommand` | string | auto-detect | Custom release command (overrides provider default) |
+
+**Provider behaviors:**
+
+| Provider | Tag Command | Release Command | Issue Fetch |
+|----------|-------------|-----------------|-------------|
+| `github` | `git tag` | `gh release create` | `gh issue list` |
+| `gitlab` | `git tag` | `glab release create` | `glab issue list` |
+| `bitbucket` | `git tag` | (manual) | (manual) |
+| `local` | `git tag` | (skip) | Read from `issues/` directory |
+
+**Local mode**: When `provider` or `issueTracker` is `"local"`, sprints work without external services:
+- Issues are read from markdown files in `issues/` directory
+- Releases are tag-only (no GitHub/GitLab release created)
+- Full sprint workflow still applies
 
 ### Example Configurations
 
@@ -2218,6 +2247,81 @@ Controls sprint planning behavior.
 {
   "planning": {
     "sprintCount": 5
+  }
+}
+```
+
+**GitLab project**:
+```json
+{
+  "scm": {
+    "provider": "gitlab",
+    "issueTracker": "gitlab"
+  }
+}
+```
+
+**GitHub with Jira issues**:
+```json
+{
+  "scm": {
+    "provider": "github",
+    "issueTracker": "jira"
+  }
+}
+```
+
+**Local-only (no external services)**:
+```json
+{
+  "scm": {
+    "provider": "local",
+    "issueTracker": "local"
+  }
+}
+```
+
+**Python project with pytest**:
+```json
+{
+  "scm": {
+    "provider": "github"
+  },
+  "closeout": {
+    "typecheck": "mypy .",
+    "lint": "ruff check .",
+    "test": "pytest",
+    "build": "poetry build"
+  }
+}
+```
+
+**Go project**:
+```json
+{
+  "scm": {
+    "provider": "github"
+  },
+  "closeout": {
+    "typecheck": "go vet ./...",
+    "lint": "golangci-lint run",
+    "test": "go test ./...",
+    "build": "go build ./..."
+  }
+}
+```
+
+**Rust project**:
+```json
+{
+  "scm": {
+    "provider": "github"
+  },
+  "closeout": {
+    "typecheck": "cargo check",
+    "lint": "cargo clippy",
+    "test": "cargo test",
+    "build": "cargo build --release"
   }
 }
 ```
